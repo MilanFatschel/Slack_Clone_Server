@@ -9,15 +9,22 @@ export default `
 
   type CreateTeamResponse {
     ok: Boolean!
-    team: Team!
+    team: Team
     errors: [Error!] 
   }
 
+  type AddTeamMemberResponse {
+    ok: Boolean!
+    errors: [Error!]
+  }
+
   type Query {
-    allTeams: [Team!]!
+    allTeams: [Team!]
+    inviteTeams: [Team!]
   }
 
   type Mutation {
     createTeam(name: String!): CreateTeamResponse!
+    addTeamMember(email: String!, teamId: Int!): AddTeamMemberResponse!
   }
 `;

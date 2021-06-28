@@ -6,6 +6,7 @@ import { refreshTokens } from './auth';
 import models from './models';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import * as StaffBar from '@staffbar/express';
 
 const SECRET = "kwnej3h248923h3829rho23yhr8932832e";
 const SECRET2 = "me32jrn8f93n89fn3dI83DQE32OKE0Ed9J"
@@ -13,8 +14,21 @@ const SECRET2 = "me32jrn8f93n89fn3dI83DQE32OKE0Ed9J"
 const typeDefs = mergeTypes(fileLoader(path.join(__dirname, './schema')));
 const resolvers = mergeResolvers(fileLoader(path.join(__dirname, './resolvers')));
 
+// Dev
+// const dev = process.env.NODE_ENV === 'development';
+StaffBar.init({
+	dev: true
+})
+//
+
 const PORT = 4000;
 const app = express();
+
+// Dev
+// Before all the middlewares!!
+app.use(StaffBar.handler())
+//
+
 app.use(cors('*'));
 
 const addUser = async (req, res, next) => {
@@ -50,7 +64,17 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app });
 
-models.sequelize.sync().then(x => {
+app.get('/hello', (req, res) => { 
+	console.log('Hello from inside your application!')	
+	res.json({ hello: 'world' }) 
+})
+
+
+// Dev
+//
+
+models.sequelize.sync({force: true}).then(x => {
+  app.use(StaffBar.errorHandler());
   app.listen({ port: PORT }, () =>
   console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`)
   );
