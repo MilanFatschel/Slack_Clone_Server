@@ -6,7 +6,8 @@ import { refreshTokens } from './auth';
 import models from './models';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import * as StaffBar from '@staffbar/express';
+import { createServer } from 'http';
+//import * as StaffBar from '@staffbar/express';
 
 const SECRET = "kwnej3h248923h3829rho23yhr8932832e";
 const SECRET2 = "me32jrn8f93n89fn3dI83DQE32OKE0Ed9J"
@@ -16,9 +17,9 @@ const resolvers = mergeResolvers(fileLoader(path.join(__dirname, './resolvers'))
 
 // Dev
 // const dev = process.env.NODE_ENV === 'development';
-StaffBar.init({
-	dev: true
-})
+// StaffBar.init({
+// 	dev: true
+// })
 //
 
 const PORT = 4000;
@@ -26,11 +27,13 @@ const app = express();
 
 // Dev
 // Before all the middlewares!!
-app.use(StaffBar.handler())
+// app.use(StaffBar.handler())
 //
 
+// Cors
 app.use(cors('*'));
 
+// Add tokens
 const addUser = async (req, res, next) => {
   const token = req.headers['x_token'];
   if (token) {
@@ -53,29 +56,32 @@ const addUser = async (req, res, next) => {
 
 app.use(addUser);
 
+// Create server
 const server = new ApolloServer({
    typeDefs, 
    resolvers,
+   subscriptions: {
+     path: '/graphql',
+     onConnect: () => console.log('Connected to websocket'),
+   },
    context: ({req, res, connection}) => { 
-     const user = req.user;
+     const user = connection ? connection.context : req.user;
      return { models, SECRET, SECRET2, user }; 
     },
 });
 
+// Apply middleware
 server.applyMiddleware({ app });
 
-app.get('/hello', (req, res) => { 
-	console.log('Hello from inside your application!')	
-	res.json({ hello: 'world' }) 
-})
+const httpServer = createServer(app);
+server.installSubscriptionHandlers(httpServer);
 
-
-// Dev
-//
-
+// Sync and listen
 models.sequelize.sync({force: true}).then(x => {
-  app.use(StaffBar.errorHandler());
-  app.listen({ port: PORT }, () =>
-  console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`)
+  // app.use(StaffBar.errorHandler());
+  httpServer.listen({ port: PORT }, () => {
+    console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
+    console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${server.subscriptionsPath}`);
+  }
   );
 });
