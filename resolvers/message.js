@@ -20,11 +20,24 @@ export default {
     }
   },
   Query: {
-    messages: requiresAuth.createResolver(async (parent, { channelId }, { models }) =>
-      models.Message.findAll(
-        { order: [['created_at', 'ASC']], where: { channelId } },
+    messages: requiresAuth.createResolver(async (parent, {cursor,  channelId }, { models }) => {
+      
+      const options = {
+        order: [['created_at', 'DESC']], 
+        where: { channelId }, limit: 17
+      }
+
+      if(cursor) {
+        options.where.created_at = {
+          [models.Sequelize.Op.lt]: new Date(parseInt(cursor, 10)),
+        };
+      }
+      
+      return models.Message.findAll(
+        options,
         { raw: true },
-      )),
+      )
+    }),
   },
   Mutation: {
     createMessage: async (parent, args, { models, user }) => {
